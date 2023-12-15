@@ -1,18 +1,10 @@
 # javascript_and_dom_notes
 
-Just some notes of stuff I forgot, never knew or never fully understood about javascript.
+Just some notes of stuff I forgot, never knew, are important to be reminded of or never fully understood about javascript.
 
 Notable source: https://javascript.info/
 
-## this and that
-
-### Clearing arrays
-
-`someArray.length = 0` as opposed to `someArray = []` is a good practice when you want to clear an array but maintain its reference across the application. It is also beneficial in terms of performance and memory efficiency.
-
-### pushing multiple values to an array
-
-- `someArray.push()` accepts multiple values and thus can also be used with the spread operator (`someArray.push(...someOtherArray)`)
+## Basics
 
 ### use strict
 
@@ -120,3 +112,26 @@ outer: for (let i = 0; i < 3; i++) {
   }
 }
 ```
+
+## Functions
+
+- `functionName.toString()` returns the function code
+- as functions are just values, everything else is a logical consequence
+    - block scoped (except in in non-strict mode)
+    - function expressions (`blah = function() {...}`) must be defined before they are called, unlike function declarations which are defined before the execution of the script `function blah() {...}`
+
+
+## Arrays
+
+### Clearing arrays
+
+`someArray.length = 0` as opposed to `someArray = []` is a good practice when you want to clear an array but maintain its reference across the application. It is also beneficial in terms of performance and memory efficiency.
+
+### pushing multiple values to an array
+
+- `someArray.push()` accepts multiple values and thus can also be used with the spread operator (`someArray.push(...someOtherArray)`)
+
+## Debugging
+
+- `step` continues execution with the next command and steps into the function code if the command is a function call, but ignores async actions
+- `step into` goes also into async functions and waits for them if necessary (https://developer.chrome.com/blog/new-in-devtools-65/#async)
