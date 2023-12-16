@@ -316,7 +316,8 @@ let user = {
 
 alert(user); // toString -> {name: "John"}
 alert(+user); // valueOf -> 1000
-alert(user + 500); // valueOf -> 1500```
+alert(user + 500); // valueOf -> 1500
+```
 
 ## Arrays
 
