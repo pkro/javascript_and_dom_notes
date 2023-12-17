@@ -154,6 +154,11 @@ alert( user2?.[key] ); // undefined
 delete user?.name; // delete user.name if user exists
 ```
 
+## Debugging
+
+- `step` continues execution with the next command and steps into the function code if the command is a function call, but ignores async actions
+- `step into` goes also into async functions and waits for them if necessary (https://developer.chrome.com/blog/new-in-devtools-65/#async)
+
 ## Functions
 
 ### General
@@ -319,17 +324,154 @@ alert(+user); // valueOf -> 1000
 alert(user + 500); // valueOf -> 1500
 ```
 
-## Arrays
+## Data types
 
-### Clearing arrays
+### Primitives as objects
 
-`someArray.length = 0` as opposed to `someArray = []` is a good practice when you want to clear an array but maintain its reference across the application. It is also beneficial in terms of performance and memory efficiency.
+- To allow methods to be called on (some) primitives (string, number, bigint, boolean, symbol, null and undefined), javascript creates a temporary object that provides fitting methods for the given type and destroys the object afterwards (if it really does this in all cases or uses a different way  depends on the internals of the JS engine)
+- there exist no wrapper objects or methods for `null` and `undefined`
+- Never use constructors for primitives (e.g. `new String("abc")`)
+- Using the functions without `new`, e.g. `let n = Number("123")` is fine of course as it just creates a primitive value
 
-### pushing multiple values to an array
+### Numbers
+
+#### Defining numbers
+
+```js
+let billion = 1000000000;
+let billion = 1_000_000_000;
+// e multiplies the number by 1 with the given zeroes count.
+1e3 === 1 * 1000; // e3 means *1000
+1.23e6 === 1.23 * 1000000; // e6 means *1000000
+// a negative number after "e" means a division by 1 with the given number of zeroes:
+// -3 divides by 1 with 3 zeroes
+1e-3 === 1 / 1000; // 0.001
+
+// -6 divides by 1 with 6 zeroes
+1.23e-6 === 1.23 / 1000000; // 0.00000123
+
+// an example with a bigger number
+1234e-2 === 1234 / 100; // 12.34, decimal point moves 2 times
+
+// hex, bin, octal notation (they are still just numbers)
+alert( 0xff ); // 255
+alert( 0xFF ); // 255 (the same, case doesn't matter)
+let a = 0b11111111; // binary form of 255
+let b = 0o377; // octal form of 255
+
+// converting to string with a given base
+let num = 255;
+
+num.toString(16);  // ff
+num.toString(2);   // 11111111
+
+// using literal numbers
+// 2 dots because JS implies that the first dot is the start of the decimal part. 
+// With the following second dot, it interprets the decimal part as empty
+123456..toString(36) // 2n9c
+// same as 
+(123456).toString(36)
+```
+
+- `.toFixed` also rounds!
+```js
+let num = 12.36;
+num.toFixed(1); // "12.4"
+```
+
+#### Number() vs `+` vs parseInt / parseFloat
+
+- `Number("123")` and `+"123"` does the same thing; trims spaces automatically, so `Number(" 123 ")` is ok
+- `parseInt` and `parseFloat` reads a number from a string until it can't be parsed as a number anymore; trims whitespace; base (radix) can be added as a second argument
+
+```js
+parseInt('a123'); // NaN, the first symbol stops the process
+
+parseInt('100px'); // 100
+parseFloat('12.5em'); // 12.5
+
+parseInt('12.3'); // 12, only the integer part is returned
+parseFloat('12.3.4'); // 12.3, the second point stops the reading
+
+parseInt('0xff', 16); // 255
+parseInt('ff', 16); // 255, without 0x also works
+
+```
+
+### Strings
+
+- I always forget that `.at` exists, which allows negative positions when accessing string indices like in python, e.g. `"abc".at(-1) === 'c'`
+- same goes for `slice` and `splice`
+- `includes`, `startsWith` and `endsWith` are a thing now
+- `substr` and `substring` are not the same!
+  - slice(start, end) 	from start to end (not including end) 	allows negatives
+  - substring(start, end) 	between start and end (not including end) 	negative values mean 0
+  - substr(start, length) 	from start get length characters 	allows negative start
+- `localCompare` takes language rules into account (e.g. Ö and O are in the correct order when in a german context)
+
+### Arrays
+
+#### General
 
 - `someArray.push()` accepts multiple values and thus can also be used with the spread operator (`someArray.push(...someOtherArray)`)
+- `someArray.length = 0` as opposed to `someArray = []` is a good practice when you want to clear an array but maintain its reference across the application. It is also beneficial in terms of performance and memory efficiency.
+- recently supports `at` method which allows negative indices
+- `splice` works in-place 
+- `concat` allows mixed arguments: ` [1,2].concat([3, 4], 5, 6); // 1,2,3,4,5,6`
+- we can make non-array objects behave like arrays when passed to concat:
 
-## Debugging
+```js
+let arr = [1, 2];
 
-- `step` continues execution with the next command and steps into the function code if the command is a function call, but ignores async actions
-- `step into` goes also into async functions and waits for them if necessary (https://developer.chrome.com/blog/new-in-devtools-65/#async)
+let arrayLike = {
+  0: "something",
+  1: "else",
+  [Symbol.isConcatSpreadable]: true,
+  length: 2
+};
+
+alert( arr.concat(arrayLike) ); // 1,2,something,else
+```
+
+- `sort` sorts an array in-place **in alphabetical order, even if the values are numbers**
+  - sort numerically using `arr.sort( (a, b) => a - b )`
+  - use `localCompare` when needed: `countries.sort( (a, b) => a.localeCompare(b)); `
+- most methods that accept callbacks also accept `thisArg`:
+
+```js
+let army = {
+  minAge: 18,
+  maxAge: 27,
+  canJoin(user) {
+    return user.age >= this.minAge && user.age < this.maxAge;
+  }
+};
+
+let users = [
+  {age: 16},
+  {age: 20},
+  {age: 23},
+  {age: 30}
+];
+
+// find users, for who army.canJoin returns true
+let soldiers = users.filter(army.canJoin, army);
+```
+- using `delete` on an array element sets the element to undefined but doesn't remove it (use `splice` to remove and re-index)
+
+### Iterables
+
+
+
+#### Performance tips 
+
+- **Arrays are objects, but if we "misuse" them, javascript turns off optimizations meant for arrays!**
+  - Misuse: Add a non-numeric property like arr.test = 5.
+  - Misuse: Make holes, like: add arr[0] and then arr[1000] (and nothing between them).
+  - Misuse: Fill the array in the reverse order, like arr[1000], arr[999] and so on.
+- As in all languages, `push` and `pop` are faster than `shift` and `undshift` because elements don't need to be renumbered
+- Don't iterate over keys using `for...in` as it's slower and returns ALL properties of the array object! Always use `for...of` with arrays to iterate over values (or use a normal loop with indices)
+
+
+
+
