@@ -459,6 +459,8 @@ let soldiers = users.filter(army.canJoin, army);
 ```
 - using `delete` on an array element sets the element to undefined but doesn't remove it (use `splice` to remove and re-index)
 
+#### Performance tips 
+
 - **Arrays are objects, but if we "misuse" them, javascript turns off optimizations meant for arrays!**
   - Misuse: Add a non-numeric property like arr.test = 5.
   - Misuse: Make holes, like: add arr[0] and then arr[1000] (and nothing between them).
@@ -468,12 +470,122 @@ let soldiers = users.filter(army.canJoin, army);
 
 ### Iterables
 
+- Iterable objects can be traversed using `for...of`
+- To make an object iterable, implement a method called `Symbol.iterator`
+- The **result** of `obj[Symbol.iterator]` is called an iterator
+- The iterator is a separate object from the object iterated over
+- The iterator must have a method called `next()` that returns an object with the properties `done` (boolean) and `value` (any=)
 
 
-#### Performance tips 
+```js
+let range = {
+  from: 1,
+  to: 5
+};
 
+// 1. call to for..of initially calls this
+range[Symbol.iterator] = function() {
 
+  // ...it returns the iterator object:
+  // 2. Onward, for..of works only with the iterator object below, asking it for next values
+  return {
+    current: this.from,
+    last: this.to,
 
+    // 3. next() is called on each iteration by the for..of loop
+    next() {
+      // 4. it should return the value as an object {done:.., value :...}
+      if (this.current <= this.last) {
+        return { done: false, value: this.current++ };
+      } else {
+        return { done: true };
+      }
+    }
+  };
+};
 
+// now it works!
+for (let num of range) {
+  alert(num); // 1, then 2, 3, 4, 5
+}
+```
 
+### Map and Set
 
+- `Map` allows objects as keys
+- `Set` returns the map and thus allows method chaining
+- `Object.entries(obj)` returns a map with key / value pairs
+- `Object.fromEntries(map)` returns an object from a map
+
+### WeakMap and WeakSet
+
+- keys must be objects
+- key objects that don't have any reference anymore are garbage collected
+- no `keys`, `values` or `entries` methods or  `size` property, only set / get / delete / has
+
+```js
+const m = new WeakMap();
+m.set({name: "Paul"}, "some value"); // is "immediately" garbage collected, no reference to the inline object
+let person = {name: "Paul"};
+m.set(person, "another value");
+m.get(person); // "another value"
+person = null;
+m.get(person); // undefined
+```
+
+WeakMap Example usage:
+
+Resource tracking
+
+```js
+let resourceUsageTracker = new WeakMap();
+
+function trackResourceUsage(obj, usageData) {
+    resourceUsageTracker.set(obj, usageData);
+}
+
+function getResourceUsage(obj) {
+    return resourceUsageTracker.get(obj) || "No data";
+}
+
+let resource = { name: "Resource1" };
+trackResourceUsage(resource, { memoryUsage: "100MB", cpuUsage: "10%" });
+
+// ... later in your code
+console.log(getResourceUsage(resource)); // Outputs the usage data
+
+// Once 'resource' is no longer referenced elsewhere, it and its associated data in resourceUsageTracker can be garbage collected.
+
+```
+
+WeakMap example usage:
+
+```js
+let activeConnections = new WeakSet();
+
+function addConnection(connection) {
+    activeConnections.add(connection);
+}
+
+function isConnectionActive(connection) {
+    return activeConnections.has(connection);
+}
+
+let connection1 = { id: 1, info: "Connection 1" };
+addConnection(connection1);
+
+// ... later in your code
+console.log(isConnectionActive(connection1)); // Outputs true
+
+// Once 'connection1' is no longer referenced elsewhere, it can be garbage collected, and it will automatically be removed from activeConnections.
+```
+
+### Date and time
+
+- Dates can have negative timestamps
+
+```js
+// 31 Dec 1969
+let Dec31_1969 = new Date(-24 * 3600 * 1000);
+alert( Dec31_1969 );
+```
