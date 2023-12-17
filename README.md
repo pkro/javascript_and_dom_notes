@@ -459,18 +459,20 @@ let soldiers = users.filter(army.canJoin, army);
 ```
 - using `delete` on an array element sets the element to undefined but doesn't remove it (use `splice` to remove and re-index)
 
-### Iterables
-
-
-
-#### Performance tips 
-
 - **Arrays are objects, but if we "misuse" them, javascript turns off optimizations meant for arrays!**
   - Misuse: Add a non-numeric property like arr.test = 5.
   - Misuse: Make holes, like: add arr[0] and then arr[1000] (and nothing between them).
   - Misuse: Fill the array in the reverse order, like arr[1000], arr[999] and so on.
 - As in all languages, `push` and `pop` are faster than `shift` and `undshift` because elements don't need to be renumbered
 - Don't iterate over keys using `for...in` as it's slower and returns ALL properties of the array object! Always use `for...of` with arrays to iterate over values (or use a normal loop with indices)
+
+### Iterables
+
+
+
+#### Performance tips 
+
+
 
 
 
