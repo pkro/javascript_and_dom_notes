@@ -184,6 +184,13 @@ User(); // undefined
 new User(); // function User { ... }
 ```
 
+### Other
+
+- max. reliable recursion depth is 10.000, in practice most engines support up to 100.000
+- `arguments` is an array-like variable that contains all arguments given to the function
+- arrow functions don't have an `arguments` variable
+- arguments collected with the spread syntax (`function sum(...nums)`) IS an array
+
 ## Objects
 
 ### Properties & property order
@@ -588,4 +595,22 @@ console.log(isConnectionActive(connection1)); // Outputs true
 // 31 Dec 1969
 let Dec31_1969 = new Date(-24 * 3600 * 1000);
 alert( Dec31_1969 );
+```
+
+
+### JSON
+
+- `JSON.stringify` can encode also booleans and strings (adds `"` to a string)
+- can't do circular references obviously
+- we can pass an array or function as a second argument (replacer) to specify which properties should be serialized
+- if an object has a `toJSON()` method defined, it is used by `JSON.stringify`
+- `JSON.parse` has a second argument "reviver" that is a `function(key, value)` that can be used to transform values:
+
+```js
+let str = '{"title":"Conference","date":"2017-11-30T12:00:00.000Z"}';
+
+let meetup = JSON.parse(str, function(key, value) {
+  if (key == 'date') return new Date(value);
+  return value;
+});
 ```
