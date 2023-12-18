@@ -190,6 +190,67 @@ new User(); // function User { ... }
 - `arguments` is an array-like variable that contains all arguments given to the function
 - arrow functions don't have an `arguments` variable
 - arguments collected with the spread syntax (`function sum(...nums)`) IS an array
+- ever function is an object and has a `.name` property that even gets smartly assigned when using e.g. `const myFunc = function(){}` (`myFunc.name === 'sayHi`); also works with methods. Doesn't work on e.g. `let arr = [function() {}];` (`arr[0].name === ""`)
+  - this can get automatically re-assigned when assigning to a different variable!
+
+```js
+let sayHi = function(who) {
+  if (who) {
+    alert(`Hello, ${who}`);
+  } else {
+    sayHi("Guest"); // Error: sayHi is not a function
+  }
+};
+
+let welcome = sayHi;
+sayHi = null;
+
+welcome(); // Error, the nested sayHi call doesn't work any more!
+```
+- function expressions can be assigned a name to work around the problem above
+
+```js
+let sayHi = function func(who) {
+  if (who) {
+    alert(`Hello, ${who}`);
+  } else {
+    func("Guest"); // use func to re-call itself
+  }
+};
+
+sayHi(); // Hello, Guest
+
+// But this won't work:
+func(); // Error, func is not defined (not visible outside of the function)
+```
+
+- functions can be declarated using `new`, e.g. for receiving function code from a server:
+
+```js
+let sum = new Function('a', 'b', 'return a + b');
+```
+
+- the lexical environment of a function declared using `new` is always the global scope
+
+- `.length` contains the number of function parameters; it is 0 for spread arguments (`function s(...args) {}; s.length === 0`)
+
+Use case: callbacks with optional parameter:
+
+```js
+function ask(question, ...handlers) {
+  let isYes = confirm(question);
+
+  for(let handler of handlers) {
+    if (handler.length == 0) {
+      if (isYes) handler();
+    } else {
+      handler(isYes);
+    }
+  }
+
+}
+```
+- arbitrary properties can be defined for functions because they are just (somewhat special) objects; unlike arrays, this doesn't have detrimental effects
 
 ## Objects
 
@@ -666,3 +727,30 @@ Global Environment
 ```
 
 This also explains how closures work: if a function is returned that references a variable of an outer scope, the outer scope isn't garbage collected and thus the variable still exists (the engines can do other optimizations such as gc'ing unneeded variables in the scope)
+
+## setInterval / setTimeout
+
+- both accept a string as the function argument and creates a function from it automatically (`setTimeout("alert('Hello')", 1000);`); not recommended
+- neste setTimeouts are more flexible than setInterval
+
+```js
+let delay = 5000;
+
+let timerId = setTimeout(function request() {
+  ...send request...
+
+  if (request failed due to server overload) {
+    // increase the interval to the next run
+    delay *= 2;
+  }
+
+  timerId = setTimeout(request, delay);
+
+}, delay);
+```
+- Always do `clearInterval` when not needed anymore because otherwise it (and possibly the outer scope(s) in case of referenced variables) will otherwise be kept in memory
+
+## Other stuff
+
+- `globalThis` references `window` in the browser and `global` in node and is now supported pretty much everywhere
+- setInterval
