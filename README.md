@@ -614,3 +614,55 @@ let meetup = JSON.parse(str, function(key, value) {
   return value;
 });
 ```
+
+## Scope and closures
+
+Just an illustration of Javascript's (theoretical) internal Environment object:
+
+```js
+class MyClass {
+    private memberVariable: string;
+
+    constructor() {
+        this.memberVariable = "Hello";
+    }
+
+    public outerFunction() {
+        let outerVariable = "World";
+
+        const innerFunction = () => {
+            let innerVariable = "!";
+            console.log(this.memberVariable + " " + outerVariable + innerVariable);
+        }
+
+        innerFunction();
+    }
+}
+
+const myObject = new MyClass();
+myObject.outerFunction();
+
+/*
+Global Environment
+|
+|-- MyClass (class)
+|   |
+|   |-- constructor
+|   |   |-- this.memberVariable (Hello)
+|   |   |-- [Reference to Global Environment]
+|   |
+|   |-- outerFunction (method)
+|       |
+|       |-- outerVariable (World)
+|       |-- [Reference to MyClass Environment]
+|       |
+|       |-- innerFunction (function)
+|           |
+|           |-- innerVariable (!)
+|           |-- this (reference to MyClass instance)
+|           |-- [Reference to outerFunction Environment]
+
+*/
+```
+
+This also explains how closures work: if a function is returned that references a variable of an outer scope, the outer scope isn't garbage collected and thus the variable still exists (the engines can do other optimizations such as gc'ing unneeded variables in the scope)
