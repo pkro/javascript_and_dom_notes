@@ -750,6 +750,67 @@ let timerId = setTimeout(function request() {
 ```
 - Always do `clearInterval` when not needed anymore because otherwise it (and possibly the outer scope(s) in case of referenced variables) will otherwise be kept in memory
 
+## call / apply / memoization / method borrowing
+
+### call and apply
+
+`context` can be thought of `thisArg`
+
+- `someFunction.call(context, arg1, arg2, ...rest)`; using spread syntax, we can pass all iterables as arguments, e.g. `someFunc.call(this, ...someIterable)`
+- `someFunction.apply(context, argArray)` - mnemonic: **a**pply starts with **a** like **a**rray; second argument must be array-like (not just iterable)
+
+### memoization
+
+To be able to use memoization decorators for object methods that rely on the correct `this`, e.g. to call other methods, we can use `someFunction.call` and explicitely pass `this`, which points to the function that `call` is called on:
+
+```js
+let worker = {
+  someMethod() {
+    return 1;
+  },
+
+  slow(x) {
+    alert("Called with " + x);
+    return x * this.someMethod(); // (*)
+  }
+};
+
+function cachingDecorator(func) {
+  let cache = new Map();
+  return function(x) {
+    if (cache.has(x)) {
+      return cache.get(x);
+    }
+    let result = func.call(this, x); // "this" is passed correctly now - "this" is "func"
+    cache.set(x, result);
+    return result;
+  };
+}
+```
+
+### Method borrowing
+
+We can use call and apply to "borrow" methods
+
+```js
+function hash() {
+  // remember, the automatic arguments variable is not a real array
+  alert( arguments.join() ); // Error: arguments.join is not a function
+}
+
+hash(1, 2);
+
+// solution: borrow "join" from an array created on the fly and use call to pass it the arguments array-like (run it in the context of "arguments" as "this")
+function hash() {
+  alert( [].join.call(arguments) ); // 1,2
+}
+
+hash(1, 2);
+
+```
+
+
+
 ## Other stuff
 
 - `globalThis` references `window` in the browser and `global` in node and is now supported pretty much everywhere
