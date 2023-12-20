@@ -764,7 +764,7 @@ let timerId = setTimeout(function request() {
 ```
 - Always do `clearInterval` when not needed anymore because otherwise it (and possibly the outer scope(s) in case of referenced variables) will otherwise be kept in memory
 
-## call / apply / memoization / method borrowing
+## call / apply / memoization / method borrowing / decorators
 
 ### call and apply
 
@@ -823,7 +823,23 @@ hash(1, 2);
 
 ```
 
+### Some useful decorators (from exercises)
 
+```js
+function debounce(func, ms) {
+  let time = new Date();
+  let to;
+  return function() {
+    if((new Date()) - time < ms) {
+        clearTimeout(to);
+        time = new Date();
+      }
+    to = setTimeout(()=>{
+        func.call(this, ...arguments);
+    }, ms);
+  }
+}
+```
 
 ## Other stuff
 
