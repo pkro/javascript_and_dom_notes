@@ -531,6 +531,7 @@ let users = [
 let soldiers = users.filter(army.canJoin, army);
 ```
 - using `delete` on an array element sets the element to undefined but doesn't remove it (use `splice` to remove and re-index)
+- `.join()` defaults to `,` as the separator, not ""!
 
 #### Noteworthy new (ES2023) methods of arrays
 
