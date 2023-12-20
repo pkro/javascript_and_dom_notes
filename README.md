@@ -528,6 +528,14 @@ let soldiers = users.filter(army.canJoin, army);
 ```
 - using `delete` on an array element sets the element to undefined but doesn't remove it (use `splice` to remove and re-index)
 
+#### Noteworthy new (ES2023) methods of arrays
+
+- `toReversed`
+- `toSorted`
+- `toSpliced`
+- `add`
+- `with(index, value)` (updating an index and returning a new array without modifying the original array); only [typedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray), 
+
 #### Performance tips 
 
 - **Arrays are objects, but if we "misuse" them, javascript turns off optimizations meant for arrays!**
