@@ -477,6 +477,10 @@ parseInt('ff', 16); // 255, without 0x also works
   - substr(start, length) 	from start get length characters 	allows negative start
 - `localCompare` takes language rules into account (e.g. Ö and O are in the correct order when in a german context)
 
+Noteworthy new methods:
+
+- `repeat(numOfRepetitions)`
+
 ### Arrays
 
 #### General
