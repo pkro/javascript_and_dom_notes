@@ -502,7 +502,7 @@ alert( arr.concat(arrayLike) ); // 1,2,something,else
 ```
 
 - `sort` sorts an array in-place **in alphabetical order, even if the values are numbers**
-- `.toSorted` returns a new, sorted array
+- `.toSorted` returns a new, sorted array (ES2023)
   - sort numerically using `arr.sort( (a, b) => a - b )`
   - use `localCompare` when needed: `countries.sort( (a, b) => a.localeCompare(b)); `
 - most methods that accept callbacks also accept `thisArg`:
