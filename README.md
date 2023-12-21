@@ -252,6 +252,12 @@ function ask(question, ...handlers) {
 ```
 - arbitrary properties can be defined for functions because they are just (somewhat special) objects; unlike arrays, this doesn't have detrimental effects
 
+- arrow functions recap:
+  - don't create a context (`this`) but take it from the surrounding scope
+  - can't be used with `new`
+  - have no automatic `arguments` variable
+
+
 ## Objects
 
 ### Properties & property order
@@ -390,6 +396,109 @@ let user = {
 alert(user); // toString -> {name: "John"}
 alert(+user); // valueOf -> 1000
 alert(user + 500); // valueOf -> 1500
+```
+
+### Property flags and descriptors
+
+All object properties have configuration flags:
+
+
+- writable – if true, the value can be changed, otherwise it’s read-only.
+- enumerable – if true, then listed in loops, otherwise not listed.
+- configurable – if true, the property can be deleted and these attributes can be modified, otherwise not.
+
+All default to `true` for created properties.
+
+The descriptor is an object with 4 properties.
+
+Read:
+
+```js
+let user = {
+  name: "John"
+};
+
+let descriptor = Object.getOwnPropertyDescriptor(user, 'name');
+
+alert( JSON.stringify(descriptor, null, 2 ) );
+/* property descriptor:
+{
+  "value": "John",
+  "writable": true,
+  "enumerable": true,
+  "configurable": true
+}
+*/
+```
+
+Write:
+
+```js
+// all property descriptors not defined in the descriptor object are set to false
+Object.defineProperty(user, "name", {
+  value: "John",
+  writable: false,
+});
+
+// multiple:
+Object.defineProperties(user, {
+  name: { value: "John", writable: false },
+  surname: { value: "Smith", writable: false },
+  // ...
+});
+```
+
+`Object.defineProperty` can be used to create a new property on an object or update the descriptor object on an existing one.
+
+Related methods:
+
+`Object.preventExtensions(obj)`, `Object.seal(obj)`, `Object.freeze(obj)`, `Object.isExtensible(obj)`, `Object.isSealed(obj)`, `Object.isFrozen(obj)`
+
+### Getters and Setters
+
+In classes and objects, getters and setters can be defined using `get` and `set`:
+
+```js
+let user = {
+  name: "John",
+  surname: "Smith",
+
+  get fullName() {
+    return `${this.name} ${this.surname}`;
+  },
+
+  set fullName(value) {
+    [this.name, this.surname] = value.split(" ");
+  }
+};
+
+// set fullName is executed with the given value.
+user.fullName = "Alice Cooper";
+
+alert(user.name); // Alice
+alert(user.surname); // Cooper
+```
+
+Getter and setter properties have their own property descriptor object that is different from normal properties:
+
+```js
+let user = {
+  name: "John",
+  surname: "Smith"
+};
+
+Object.defineProperty(user, 'fullName', {
+  get() {
+    return `${this.name} ${this.surname}`;
+  },
+
+  set(value) {
+    // custom logic can be added here to e.g. throw an Error
+    [this.name, this.surname] = value.split(" ");
+  },
+  //enumerable – same as for data properties,
+  //configurable – same as for data properties.
+});
 ```
 
 ## Data types
@@ -802,6 +911,38 @@ function cachingDecorator(func) {
 }
 ```
 
+### bind
+
+- `func.bind(context, ...args)` can be used to create partials
+
+```js
+function mul(a, b) {
+  return a * b;
+}
+
+let double = mul.bind(null, 2);
+
+alert( double(3) ); // = mul(2, 3) = 6
+alert( double(4) ); // = mul(2, 4) = 8
+alert( double(5) ); // = mul(2, 5) = 10
+```
+
+- simple partials for functions not relying on `this` can be just done with arrow functions:
+
+```js
+let double = (b) => mul(2, b);
+```
+
+- a function can't be re-bound
+
+```js
+f = f.bind( {name: "John"} ).bind( {name: "Pete"} );
+
+f(); // John
+```
+- the result of `bind` is a new function object; if there were additional properties added to the original function, they won't exist in the newly bound function
+
+
 ### Method borrowing
 
 We can use call and apply to "borrow" methods
@@ -844,4 +985,3 @@ function debounce(func, ms) {
 ## Other stuff
 
 - `globalThis` references `window` in the browser and `global` in node and is now supported pretty much everywhere
-- setInterval
