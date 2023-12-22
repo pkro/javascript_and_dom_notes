@@ -2,7 +2,9 @@
 
 Just some notes of stuff I forgot, never knew, are important to be reminded of or never fully understood about javascript.
 
-Notable source: https://javascript.info/
+Notable source with very good and terse explanations, examples and exercises: https://javascript.info/
+
+Most examples here are from that site.
 
 ## Basics
 
@@ -980,6 +982,73 @@ function debounce(func, ms) {
     }, ms);
   }
 }
+```
+
+## Prototypes
+
+### `[[Prototype]]` and `__proto__`
+
+- `[[Prototype]]` is a hidden object property bein either `null` or referencing another object
+- `__proto__` is a getter / setter property to set `[[Prototype]]`
+  - `Object.getPrototypeOf` / `Object.setPrototypeOf` can (and should?) also be used for that
+- `this` references always the current object (not affected by prototype chain):
+
+
+```js
+let animal = {
+  walk() {
+    if (!this.isSleeping) {
+      alert(`I walk`);
+    }
+  },
+  sleep() {
+    this.isSleeping = true; // creates a new property isSleeping
+  }
+};
+
+let rabbit = {
+  name: "White Rabbit",
+  __proto__: animal
+};
+
+// modifies rabbit.isSleeping
+rabbit.sleep(); // creates a new property on THE CURRENT OBJECT (rabbit), not the prototype
+
+alert(rabbit.isSleeping); // true
+alert(animal.isSleeping); // undefined (no such property in the prototype)
+```
+- `for ... in` iterates over inherited properties, `Object.keys` (and related methods such as `.entries()` or `.values` only over own properties:
+
+```js
+let animal = {
+  eats: true
+};
+
+let rabbit = {
+  jumps: true,
+  __proto__: animal
+};
+
+// Object.keys only returns own keys
+alert(Object.keys(rabbit)); // jumps
+
+// for..in loops over both own and inherited keys
+for(let prop in rabbit) alert(prop); // jumps, then eats
+```
+- use `obj.hasOwnProperty(prop)` to filter out prototype properties in for...in loops
+
+### `.prototype`
+
+To create some confusion, there's a "normal" `.prototype` property that can be created and is used to specify the prototype on an object created with `new`.
+
+Functions have a default prototype that points to an object with the only property `constructor` which points to itself:
+
+```js
+function Rabbit() {}
+// by default:
+// Rabbit.prototype = { constructor: Rabbit }
+
+alert( Rabbit.prototype.constructor == Rabbit ); // true
 ```
 
 ## Other stuff
