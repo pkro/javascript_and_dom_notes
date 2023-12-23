@@ -262,6 +262,12 @@ function ask(question, ...handlers) {
 
 ## Objects
 
+### Creating objects
+
+- Literal (`const o = {}`) creates an object with `Object` as its prototype
+- `Object.create(null)` creates an object without any prototype (and thus no toString), but most static methods of `Object` still work, e.g. `Object.keys(obj)`; These objects w/o a prototype are useful for using them as associative arrays without having to check if a key would overwrite a property of the prototype
+
+
 ### Properties & property order
 
 - numbers and keywords can be used as property names (but imo shouldn't); `{ 0: "somevalue"}` -> 0 will be automatically converted to string
@@ -1049,6 +1055,34 @@ function Rabbit() {}
 // Rabbit.prototype = { constructor: Rabbit }
 
 alert( Rabbit.prototype.constructor == Rabbit ); // true
+```
+
+If we want to use the same constructor as an existing object (e.g. from a library where we don't know the constructor):
+
+```js
+function Rabbit(name) {
+  this.name = name;
+  alert(name);
+}
+
+let rabbit = new Rabbit("White Rabbit");
+
+let rabbit2 = new rabbit.constructor("Black Rabbit");
+```
+
+### Borrowing from prototypes
+
+```js
+let obj = {
+  0: "Hello",
+  1: "world!",
+  length: 2,
+};
+
+// works because the built-in join method only cares about the correct indexes and the length property
+obj.join = Array.prototype.join;
+
+alert( obj.join(',') ); // Hello,world!
 ```
 
 ## Other stuff
