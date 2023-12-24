@@ -1085,6 +1085,251 @@ obj.join = Array.prototype.join;
 alert( obj.join(',') ); // Hello,world!
 ```
 
+## Classes
+
+### Basics
+
+Basic class syntax
+
+```js
+class MyClass {
+  prop = value; // property
+
+  constructor(...) { // constructor
+    // ...
+  }
+
+  method(...) {} // method
+
+  get something(...) {} // getter method
+  set something(...) {} // setter method
+
+  [Symbol.iterator]() {} // method with computed name (symbol here)
+  // ...
+}```
+
+- `MyClass` is technically a function (the one that we provide as constructor), while methods, getters and setters are written to MyClass.prototype.
+- can be passed around and created on the fly (e.g. `return class Blah {...}`)
+
+```js
+class User {
+  name = "Joe"; // class fields - they exist only on the instantiated object!
+  constructor(name) { 
+    this._name = name; 
+    this.somethingelse = "class fields can be created on the fly (NOT in typescript though)";
+  } // NO comma between methods, like in literal objects
+
+  sayHi() { 
+    alert(this._name); 
+  }
+
+  // if an object method is passed around, e.g. setTimeout(Joe.sayHi, 1000),
+  // it loses its "this" context!
+  // avoid with arrow functions (beside binding or using an arrow function in setTimeout)
+  // this function is created on a per-objet basis, meaning a new function is created for each
+  // new object
+  sayHello = () => alert(this._name); 
+
+  get name() { // allow accessor method notation like in objects
+    return this._name;
+  }
+
+  ["some"+"Method"]() {
+    return "Computed method names are a-ok";
+  }
+}
+
+```
+
+### Inheritance
+
+- `extends` can be used with expressions:
+
+```js
+function f(phrase) {
+  return class {
+    sayHi() { alert(phrase); }
+  };
+}
+
+class User extends f("Hello") {}
+
+new User().sayHi(); // Hello
+```
+
+- Base class and its methods is availabe with `super` except for arrow functions which have no `super`
+- if no constructor is defined in the subclass, a constructor is "generated": `constructor(...args) { super(...args); }`
+- if the constructor is overridden, `super()` must be called before referencing `this`
+- if an overridden **field** variable is used in the **parent constructor**, it uses the value defined in the parent class:
+
+```js
+class Animal {
+  name = 'animal';
+
+  constructor() {
+    alert(this.name); // (*)
+  }
+}
+
+class Rabbit extends Animal {
+  name = 'rabbit';
+}
+
+new Animal(); // animal
+new Rabbit(); // animal
+```
+
+### static methods and properties
+
+- not availabe on individual objects
+
+factory methods:
+
+```js
+class Article {
+  static someStaticProperty = "hey";
+
+  static createArticle() {
+    return new this();
+  }
+}
+```
+
+Static declaration is the same as doing
+
+```js
+MyClass.property = ...
+MyClass.method = ...
+```
+
+### Private fields
+
+- no language level way to enforce protected (available in the parent and subclasses) fields and methods
+  - workaround: specify getter function but no setter; prefix private variables with "_" as a convention (not enforced)
+- not supported everywhere yet, but will be enforced on language level: prefix **private** fields an methods with `#`
+  - these will not be inherited / accessible in derived classes
+  - private fields are not available as `this[fieldName]`, even in the base class where it's defined
+- public / private / protected keywords are supported **in typescript**
+
+Javascript example:
+
+```js
+class ExampleClass {
+    #privateField;
+    _protectedField;
+
+    constructor() {
+        this.#privateField = 'Private';
+        this._protectedField = 'Protected';
+    }
+
+    #privateMethod() {
+        console.log('This is a private method');
+    }
+
+    _protectedMethod() {
+        console.log('This is a protected method');
+    }
+}
+
+class DerivedClass extends ExampleClass {
+    callProtectedMethod() {
+        this._protectedMethod(); // Allowed
+    }
+}
+
+const example = new ExampleClass();
+// example.#privateMethod(); // Syntax Error: Private method is not accessible
+// example._protectedMethod(); // Error: Method is intended to be protected and should not be called outside class hierarchy
+
+const derived = new DerivedClass();
+derived.callProtectedMethod(); // Allowed
+```
+
+Typescript example:
+
+```typescript
+class ExampleClass {
+    private privateField: string;
+    protected protectedField: string;
+
+    constructor() {
+        this.privateField = 'Private';
+        this.protectedField = 'Protected';
+    }
+
+    private privateMethod(): void {
+        console.log('This is a private method');
+    }
+
+    protected protectedMethod(): void {
+        console.log('This is a protected method');
+    }
+}
+
+class DerivedClass extends ExampleClass {
+    public callProtectedMethod(): void {
+        this.protectedMethod(); // Allowed
+    }
+}
+
+const example = new ExampleClass();
+// example.privateMethod(); // Error: Method is private
+// example.protectedMethod(); // Error: Method is protected and only accessible within class and its subclasses
+
+const derived = new DerivedClass();
+derived.callProtectedMethod(); // Allowed
+```
+
+### Extending built-in classes
+
+- no inheritance of static properties and methods in classes derived from built-in classes, e.g. `Array.isArray`
+- if no constructor is specified in the derived class, methods will return results of the type of the derived class, not the base class (which is a good thing)
+- if another type should be returned, a special getter can be defined:
+
+```js
+class PowerArray extends Array {
+  isEmpty() {
+    return this.length === 0;
+  }
+
+  // built-in methods will use this as the constructor
+  static get [Symbol.species]() {
+    return Array;
+  }
+}
+
+let arr = new PowerArray(1, 2, 5, 10, 50);
+alert(arr.isEmpty()); // false
+
+// filter creates new array using arr.constructor[Symbol.species] as constructor
+let filteredArr = arr.filter(item => item >= 10);
+
+// filteredArr is not PowerArray, but Array
+alert(filteredArr.isEmpty()); // Error: filteredArr.isEmpty is not a function
+```
+
+### Checking types
+
+- `typeof` 	primitives 	string
+- `{}.toString` 	for primitives, built-in objects and objects with `Symbol.toStringTag`, returns `string`
+- `instanceof` for	objects, returns 	true/false
+  - `instanceof SomeClass` returns `true` if an object is of type `SomeClass` or any class that `SomeClass` is inheriting from (so e.g. anything `instanceof Array` is also `instanceof Object`)
+  - `instanceof` uses the `.prototype` of the object
+  - `Object.prototype.toString` can be used in the context (this) of any object!
+
+```js
+let s = Object.prototype.toString;
+
+alert( s.call(123) ); // [object Number]
+alert( s.call(null) ); // [object Null]
+alert( s.call(alert) ); // [object Function]
+```
+
+### Mixins
+
+A mixin is a class containing methods that can be used by other classes without a need to inherit from it.
+
 ## Other stuff
 
 - `globalThis` references `window` in the browser and `global` in node and is now supported pretty much everywhere
