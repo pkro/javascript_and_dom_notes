@@ -1328,7 +1328,197 @@ alert( s.call(alert) ); // [object Function]
 
 ### Mixins
 
-A mixin is a class containing methods that can be used by other classes without a need to inherit from it.
+A mixin is an objet containing methods that can be used by other classes without a need to inherit from it.
+
+Simple event handling mixins:
+
+```js
+const EventHandlerMixin = {
+  _eventHandlers = {}
+
+  on(eventName, handler) {
+    if( ! this._eventHandlers[eventName]) {
+      this._eventHandlers[eventName] = [];
+    }
+    this._eventHandlers[eventName].push(handler);
+  }
+
+  // unsusbscribe - important: handler must be referencing the same object as when
+  // it was subscribed to, as always
+  off(eventName, handler) {
+    if( ! this._eventHandlers[eventName]) {
+      return;
+    }
+    for(let i=0; i<this.eventHandlers[eventName].length; i++) {
+      if(this._eventHandlers[eventName][i] === handler) {
+        this._eventHandlers[eventName].splice(i, 1); 
+        i--;
+      }
+    }
+    const idx = this._eventHandlers.findIndex(e=>e === handler);
+    this._eventHandlers.splice(idx);
+  }
+
+  trigger(eventName, ...args) {
+    if(this._eventHandlers[eventName]) {
+      for(handler of this._eventHandlers[eventName]) {
+        handler.apply(this, args);
+      }
+    }
+  }
+}
+```
+
+Usage:
+
+```js
+// Make a class
+class Menu {
+  choose(value) {
+    this.trigger("select", value);
+  }
+}
+// Add the mixin with event-related methods
+Object.assign(Menu.prototype, eventMixin);
+
+let menu = new Menu();
+
+// add a handler, to be called on selection:
+menu.on("select", value => alert(`Value selected: ${value}`));
+
+// triggers the event => the handler above runs and shows:
+// Value selected: 123
+menu.choose("123");
+```
+
+## Try / catch / finally
+
+- `try / catch / finally` works only on synchronous code and won't catch errors happening in promises without `await`, errors in functions passed to `setTimeout` etc.
+- `Error` objects can be of different types (e.g. ) and usually contain `message`, `name` (error type / error constructor name), `stack` properties
+- global handlers can be assigned to catch all errors:
+  - browser: `window.onerror = function(message, url, line, col, error) {...}`
+  - node: `process.on("uncaughtException", err=>{...})`
+
+Example browser:
+
+```js
+<script>
+  window.onerror = function(message, url, line, col, error) {
+    alert(`${message}\n At ${line}:${col} of ${url}`);
+  };
+
+  function readData() {
+    badFunc(); // Whoops, something went wrong!
+  }
+
+  readData();
+</script>
+```
+
+- we can create own error classes by inheriting from `Error` or one of its subclasses;
+
+Explicit:
+
+```js
+class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+class PropertyRequiredError extends ValidationError {
+  constructor(property) {
+    super("No property: " + property);
+    this.name = "PropertyRequiredError";
+    this.property = property;
+  }
+}
+```
+
+Simplified:
+
+```js
+class MyError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}
+
+class ValidationError extends MyError { }
+
+class PropertyRequiredError extends ValidationError {
+  constructor(property) {
+    super("No property: " + property);
+    this.property = property;
+  }
+}
+```
+
+- We can wrap exceptions so we don't have to check for each individual exceptions if they are variants of the same parent exception (not a language feature, but a design pattern):
+
+Verbatim from javascript.info:
+
+```js
+class ReadError extends Error {
+  constructor(message, cause) {
+    super(message);
+    this.cause = cause;
+    this.name = 'ReadError';
+  }
+}
+
+class ValidationError extends Error { /*...*/ }
+class PropertyRequiredError extends ValidationError { /* ... */ }
+
+function validateUser(user) {
+  if (!user.age) {
+    throw new PropertyRequiredError("age");
+  }
+
+  if (!user.name) {
+    throw new PropertyRequiredError("name");
+  }
+}
+
+function readUser(json) {
+  let user;
+
+  try {
+    user = JSON.parse(json);
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      throw new ReadError("Syntax Error", err);
+    } else {
+      throw err;
+    }
+  }
+
+  try {
+    validateUser(user);
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      throw new ReadError("Validation Error", err);
+    } else {
+      throw err;
+    }
+  }
+
+}
+
+try {
+  readUser('{bad json}');
+} catch (e) {
+  if (e instanceof ReadError) {
+    alert(e);
+    // Original error: SyntaxError: Unexpected token b in JSON at position 1
+    alert("Original error: " + e.cause);
+  } else {
+    throw e;
+  }
+}
+```
 
 ## Other stuff
 
