@@ -1520,6 +1520,178 @@ try {
 }
 ```
 
+## Callbacks, promises
+
+### Callbacks
+
+Simple script loader that executes a function once the script is loaded (or not):
+
+```js
+loadScript('/my/script.js', function(error, script) {
+  if (error) {
+    // handle error
+  } else {
+    // script loaded successfully
+    // possibly load another script the same way (callback hell)
+  }
+});
+```
+
+### Promises
+
+#### Basics
+
+Good analogy: you subscribe to a waiting list for a new song (value) from an artist (executor) and get notified once the song is finished (value) or if the song project is abandoned (error)
+
+```js
+let promise = new Promise(function(resolve, reject) {
+  // executor (the producing code, "singer")
+  // runs when the promise is created
+  if(thereWasSomeError) {
+    reject(new Error("something went wrong"));
+  }
+  resolve(someValue)
+});
+```
+
+`resolve` and `reject` are functions provided by javascript itself. They can be called only once by the executor (all further calls to resolve or reject are ignored once one of them is called, so there can't be multiple resolves and resolve and reject are mutually exclusive).
+
+#### `.then`
+
+The object returned by `new Promise` has the following **internal** (can't be directly accessed) properties:
+
+- `.state`: initially "pending", then changes to "fulfilled" when `resolve` is called or "rejected" when `reject` is called.
+- `.result`: `undefined`, then changes to `value` when `resolve(value)` is called or `error` when `reject(error)`` is called.
+
+As these properties are internal, we can indirectly access them using `.then`, `.catch` and `finally`:
+
+```js
+let promise = new Promise(function(resolve, reject) {
+  setTimeout(() => reject(new Error("Whoops!")), 1000);
+});
+
+// reject runs the second function in .then
+promise.then(
+  result => alert(result), // doesn't run; can be null if we're not interested in the success value
+  error => alert(error) // shows "Error: Whoops!" after 1 second; optional; can be null
+);
+```
+
+- we can attach multiple `.then` handlers to a promise (NOT promise chaining, they run individually!); this is rarely used.
+
+```js
+let promise = new Promise(function(resolve, reject) {
+  setTimeout(() => resolve(1), 1000);
+});
+
+promise.then(function(result) {
+  alert(result); // 1
+  return result * 2;
+});
+
+promise.then(function(result) {
+  alert(result); // independent of the other handler, result is still 1
+  return result * 2;
+});
+```
+
+- `.then` **returns a new promise** (or, more precise, a “thenable” object to allow for creation of Promise-compatible objects without inheriting from `Promise`)
+
+We can chain `.then`s to allow for async operations on the value.
+
+```js
+fetch('/article/promise-chaining/user.json')
+  // .then below runs when the remote server responds
+  .then(function(response) {
+    // response.text() returns a new promise that resolves with the full response text
+    // when it loads
+    return response.text();
+  })
+  .then(function(text) {
+    // ...and here's the content of the remote file
+    alert(text); // {"name": "iliakan", "isAdmin": true}
+  });
+```
+
+Errors thrown in the executor (explicitely by the programmer or javascript errors) are automatically handled like `reject(error)`:
+
+
+```js
+new Promise((resolve, reject) => {
+  throw new Error("Whoops!");
+}).catch(alert); // Error: Whoops!
+```
+
+The same happens in the promises created by the `.then` handlers.
+
+```js
+new Promise((resolve, reject) => {
+  resolve("success!")
+})
+.then(val => noSuchFunction(val))
+.catch(alert); // // noSuchFunction: blabla is not defined
+```
+
+#### `.catch`
+
+`.catch(f)` is a complete analog / shorthand of `.then(null, f)`
+
+#### `.finally`
+
+- used to clean up (e.g. disable loading state)
+- runs when the promise is resolved or rejected
+- finally handler has no arguments
+- passes through result and error
+
+Example
+
+```js
+new Promise((resolve, reject) => {
+  setTimeout(() => resolve("value"), 2000);
+})
+  .finally(() => alert("Promise ready")) // triggers first
+  .then(result => alert(result)); // <-- .then shows "value"
+```
+
+#### `unhandledrejection`
+
+Only errors we can actually handle should be caught.
+
+We can catch errors in promises using the `unhandledrejection` event.
+
+
+```js
+window.addEventListener('unhandledrejection', function(event) {
+  // the event object has two special properties:
+  alert(event.promise); // [object Promise] - the promise that generated the error
+  alert(event.reason); // Error: Whoops! - the unhandled error object
+});
+
+new Promise(function() {
+  throw new Error("Whoops!");
+}); // no catch to handle the error
+```
+
+#### Gotchas
+
+
+There’s an "implicit try..catch" around the function code. So all synchronous errors are handled.
+
+But here the error is generated not while the executor is running, but later. So the promise can’t handle it.
+
+```js
+new Promise(function(resolve, reject) {
+  setTimeout(() => {
+    throw new Error("Whoops!"); // will NOT be handled by catch!
+  }, 1000);
+}).catch(alert);
+```
+
+### Promise API
+
+
+
+
 ## Other stuff
 
 - `globalThis` references `window` in the browser and `global` in node and is now supported pretty much everywhere
