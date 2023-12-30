@@ -709,6 +709,21 @@ for (let num of range) {
 }
 ```
 
+Using a generator function:
+
+```js
+let range = {
+  from: 1,
+  to: 5,
+
+  *[Symbol.iterator]() { // a shorthand for [Symbol.iterator]: function*()
+    for(let value = this.from; value <= this.to; value++) {
+      yield value;
+    }
+  }
+};
+```
+
 ### Map and Set
 
 - `Map` allows objects as keys
@@ -1672,8 +1687,38 @@ new Promise(function() {
 }); // no catch to handle the error
 ```
 
+#### Promise API
+
+- Used to return a value as a promise:
+  - `Promise.resolve(value)` creates an immediately resolved promise and has the same effect as `new Promise((resolve, reject)=>resolve(value))`
+  - `Promise.reject(error)` creates an immediately rejected promise and has the same effect as `new Promise((resolve, reject)=>reject(error))`
+- Multiple promises:
+  - `Promise.all(iterableOfPromisesOrValues)` waits until all passed promises are resolved OR one of the promises is rejected; if all are resolved, the results are returned in an array in order of the promises of the iterable; if rejected, it returns the error of the rejected promise
+
+```js
+  Promise.all([
+  new Promise((resolve, reject) => {
+    setTimeout(() => resolve(1), 1000)
+  }),
+  2, // normal values are allowed too for convenience
+
+]).then(alert); // 1, 2, 3
+```
+
+  - `Promise.allSettled(iterable)` returns the values or errors in order when all promises passed are either resolved or rejected
+  - `Promise.race(iterable)` returns the value or error of the first settled promise
+  - `Promise.any(iterable)` returns the value of the first resolved promise; if all promises are rejected, it returns an `AggregateError` with all promise errors in its `.error` array property (e.g. `errors.error[0]`)
+
+#### Promisification
+
+- Pattern used to wrap a function that uses callbacks in a function that returns a promise
+
+https://javascript.info/promisify
+
+
 #### Gotchas
 
+##### errors not handled by executor
 
 There’s an "implicit try..catch" around the function code. So all synchronous errors are handled.
 
@@ -1687,9 +1732,119 @@ new Promise(function(resolve, reject) {
 }).catch(alert);
 ```
 
-### Promise API
+##### Microtask queue / Immediately resolved promises are styll asynchronous!
 
 
+>>Promise handling is always asynchronous, as all promise actions pass through the internal “promise jobs” queue, also called “microtask queue” (V8 term).
+>>So .then/catch/finally handlers are always called after the current code is finished.
+
+```js
+let promise = Promise.resolve();
+
+promise.then(() => alert("promise done!"));
+
+alert("code finished"); // this alert shows first
+```
+
+### async / await
+
+#### Async
+
+- `async` ensures that a function return a promise instead of a value:
+
+```js
+async function myFunc() {
+  return 1;
+}
+
+// same as 
+
+async function myOtherFunc() {
+  return new Promise(resolve=>resolve(1));
+}
+
+myFunc().then(...)
+```
+
+- It allows us to use `await` inside the function body
+
+
+#### Await
+
+- Waits (suspends execution) until a promise is settled and returns its result. It doesn't block the javascript engine itself
+- errors can be caught using try / catch or with `.catch`
+
+```js
+async function f() {
+  let response = await fetch('http://no-such-url');
+}
+
+// f() becomes a rejected promise
+f().catch(alert); // TypeError: failed to fetch // (*)
+
+// same as 
+
+try {
+  f()
+} catch(error) {
+  alert(error)
+}
+```
+
+## Generators / yield
+
+Similar to python generators. Returns a generator that returns values as an iterable using `yield` and pauses function execution.
+
+```js
+function* generateSequence(start, end) { // * denotes a generator function
+  for (let i = start; i <= end; i++) {
+    yield i;
+  }
+}
+
+const oneToFive = generateSequence(1,5);
+for(const num of oneToFive) {
+  console.log(num); // 1,2,3,4,5
+}
+
+// the generator can't be re-used!
+const myAr = [...oneToFive]; // myAr is []
+```
+
+`yield*` delegates to another generator:
+
+```js
+function* generateAnotherSequence() {
+  yield* generateSequence(1,5);
+  yield* generateSequence(6,10);
+}
+
+const myAr = [...generateAnotherSequence()] // 1,2,...,10
+```
+
+Values can be passed TO generators!
+
+```js
+function* questionGenerator(initialValue) {
+  let myVal = initialValue;
+  while(myVal) {
+    myVal = yield `${myVal} + ${myVal} = ?`;
+  }
+}
+
+const gen = questionGenerator(1);
+
+const questions = [
+  gen.next().value,
+  gen.next(2).value,
+  gen.next(3).value
+]
+
+console.log(questions) // Array(3) [ "1 + 1 = ?", "2 + 2 = ?", "3 + 3 = ?" ]
+```
+
+- `generator.throw(error)` throws an error *into* the generator
+- `generator.return(value)` finishes the generator "prematurely" ) e.g. `g.return('foo'); // { value: "foo", done: true }`
 
 
 ## Other stuff
