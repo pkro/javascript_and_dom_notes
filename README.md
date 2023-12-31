@@ -724,6 +724,91 @@ let range = {
 };
 ```
 
+Iterators can be asynchronous by using `[Symbol.asyncIterator]` and `for await(... of ...)`:
+
+```js
+let range = {
+  from: 1,
+  to: 5,
+
+  [Symbol.asyncIterator]() { // (1)
+    return {
+      current: this.from,
+      last: this.to,
+
+      async next() { // (2)
+
+        // note: we can use "await" inside the async next:
+        await new Promise(resolve => setTimeout(resolve, 1000)); // (3)
+
+        if (this.current <= this.last) {
+          return { done: false, value: this.current++ };
+        } else {
+          return { done: true };
+        }
+      }
+    };
+  }
+};
+
+(async () => {
+
+  for await (let value of range) { // (4)
+    alert(value); // 1,2,3,4,5
+  }
+
+})()
+```
+
+Note: The spread syntax does not work with async iterators!
+
+Async iteration can also be achieved using generators:
+
+```js
+async function* fetchCommits(repo) {
+  let url = `https://api.github.com/repos/${repo}/commits`;
+
+  while (url) {
+    const response = await fetch(url, { // (1)
+      headers: {'User-Agent': 'Our script'}, // github needs any user-agent header
+    });
+
+    const body = await response.json(); // (2) response is JSON (array of commits)
+
+    // (3) the URL of the next page is in the headers, extract it
+    const link = response.headers.get('Link');
+    if(link) {
+    	let nextPage = link.match(/<(.*?)>; rel="next"/);
+    	nextPage = nextPage?.[1];
+      url = nextPage;
+    } else {
+      url = null;
+    }
+    
+
+    for(let commit of body) { // (4) yield commits one by one, until the page ends
+      yield commit;
+    }
+  }
+}
+
+(async () => {
+
+  for await (let commit of fetchCommits("pkro/javascript_and_dom_notes")) {
+   console.log(commit);
+  }
+
+})();
+
+
+```
+
+
+
+
+
+
+
 ### Map and Set
 
 - `Map` allows objects as keys
