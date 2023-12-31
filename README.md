@@ -800,14 +800,7 @@ async function* fetchCommits(repo) {
 
 })();
 
-
 ```
-
-
-
-
-
-
 
 ### Map and Set
 
@@ -1931,6 +1924,71 @@ console.log(questions) // Array(3) [ "1 + 1 = ?", "2 + 2 = ?", "3 + 3 = ?" ]
 - `generator.throw(error)` throws an error *into* the generator
 - `generator.return(value)` finishes the generator "prematurely" ) e.g. `g.return('foo'); // { value: "foo", done: true }`
 
+
+## Modules
+
+Core takeaways in the following sections are taken verbatim from javascript.info.
+
+### General
+
+- A module is a file. To make import/export work, browsers need `<script type="module">`. Modules have several differences:
+- Deferred by default.
+- Async works on inline scripts.
+- To load external scripts from another origin (domain/protocol/port), CORS headers are needed.
+- Duplicate external scripts are ignored.
+- Modules have their own, local top-level scope and interchange functionality via import/export.
+- Modules always use strict.
+- Module code is executed only once. Exports are created once and shared between importers.
+
+### Export
+
+<ul>
+<li>Before declaration of a class/function/…:
+<ul>
+<li><code>export [default] class/function/variable ...</code></li>
+</ul>
+</li>
+<li>Standalone export:
+<ul>
+<li><code>export {x [as y], ...}</code>.</li>
+</ul>
+</li>
+<li>Re-export:
+<ul>
+<li><code>export {x [as y], ...} from "module"</code></li>
+<li><code>export * from "module"</code> (doesn’t re-export default).</li>
+<li><code>export {default [as y]} from "module"</code> (re-export default).</li>
+</ul>
+</li>
+</ul>
+
+
+### Import
+
+<p>Import:</p>
+<ul>
+<li>Importing named exports:
+<ul>
+<li><code>import {x [as y], ...} from "module"</code></li>
+</ul>
+</li>
+<li>Importing the default export:
+<ul>
+<li><code>import x from "module"</code></li>
+<li><code>import {default as x} from "module"</code></li>
+</ul>
+</li>
+<li>Import all:
+<ul>
+<li><code>import * as obj from "module"</code></li>
+</ul>
+</li>
+<li>Import the module (its code runs), but do not assign any of its exports to variables:
+<ul>
+<li><code>import "module"</code></li>
+</ul>
+</li>
+</ul>
 
 ## Other stuff
 
