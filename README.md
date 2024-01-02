@@ -1942,53 +1942,55 @@ Core takeaways in the following sections are taken verbatim from javascript.info
 
 ### Export
 
-<ul>
-<li>Before declaration of a class/function/…:
-<ul>
-<li><code>export [default] class/function/variable ...</code></li>
-</ul>
-</li>
-<li>Standalone export:
-<ul>
-<li><code>export {x [as y], ...}</code>.</li>
-</ul>
-</li>
-<li>Re-export:
-<ul>
-<li><code>export {x [as y], ...} from "module"</code></li>
-<li><code>export * from "module"</code> (doesn’t re-export default).</li>
-<li><code>export {default [as y]} from "module"</code> (re-export default).</li>
-</ul>
-</li>
-</ul>
+- Before declaration of a class/function/…: `export [default] class/function/variable ...`
+- Standalone export: `export {x [as y], ...}`
+- Re-export:
+  - `export {x [as y], ...} from "module"`
+  - `export * from "module"` (doesn’t re-export default).</li>
+  - `export {default [as y]} from "module"` (re-export default).</li>
 
 
 ### Import
 
-<p>Import:</p>
-<ul>
-<li>Importing named exports:
-<ul>
-<li><code>import {x [as y], ...} from "module"</code></li>
-</ul>
-</li>
-<li>Importing the default export:
-<ul>
-<li><code>import x from "module"</code></li>
-<li><code>import {default as x} from "module"</code></li>
-</ul>
-</li>
-<li>Import all:
-<ul>
-<li><code>import * as obj from "module"</code></li>
-</ul>
-</li>
-<li>Import the module (its code runs), but do not assign any of its exports to variables:
-<ul>
-<li><code>import "module"</code></li>
-</ul>
-</li>
-</ul>
+- Importing named exports: `import {x [as y], ...} from "module"`
+- Importing the default export:
+  - `import x from "module"`
+  - `import {default as x} from "module"`
+- Import all: `import * as obj from "module"`
+- Import the module (its code runs), but do not assign any of its exports to variables: `import "module"`
+
+### Import expression
+
+`import("/somefile.js)` loads the code and returns a promise that resolves into the module. They work also in scripts that aren't loaded with `type="module"`.
+
+- named exports: `let {hi, bye} = await import('./say.js');`
+- default exports: 
+
+```js
+let obj = await import('./say.js');
+let say = obj.default;
+```
+
+## Proxy
+
+Syntax: `let proxy = new Proxy(target, handler)`
+
+A proxy 
+- wraps an object and intercepts its operations
+- is a special object with no own properties
+- forwards all operations for which there are no traps set to the target:
+
+```js
+let target = {};
+let proxy = new Proxy(target, {}); // empty handler
+
+proxy.test = 5; // writing to proxy (1)
+alert(target.test); // 5, the property appeared in target!
+
+alert(proxy.test); // 5, we can read it from proxy too (2)
+
+for(let key in proxy) alert(key); // test, iteration works (3)
+```
 
 ## Other stuff
 
