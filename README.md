@@ -1971,14 +1971,27 @@ let obj = await import('./say.js');
 let say = obj.default;
 ```
 
-## Proxy
+## Proxy / Reflect
 
 Syntax: `let proxy = new Proxy(target, handler)`
 
 A proxy 
-- wraps an object and intercepts its operations
+- wraps an object and intercepts its operations with traps
+- trap methods: 
+  - `get`, `set` (accessing properties; `set` must return true or false depending on success)
+  - `deleteProperty` (using `del`, must return true/false), 
+  - `construct` (instantiating with `new`), 
+  - `apply` (calling a function), 
+  - `has(target, prop)` (checking e.g. `if(5 in myRange)`)
+  - and [more](https://javascript.info/proxy)
+- forwards all operations for which there are no traps set to the target
 - is a special object with no own properties
-- forwards all operations for which there are no traps set to the target:
+- has performance implications (slower than using the object directly)
+- has issues with some internal objects / classes such as `Map`
+- the original target should never be used when there's a proxy for it to avoid mess
+- revocable proxies can be instantiated with `let {proxy, revoke} = Proxy.revocable(object, {});`; `revoke()` can later be used to delete all references to the wrapped object
+
+Simplest proxy
 
 ```js
 let target = {};
@@ -1992,6 +2005,156 @@ alert(proxy.test); // 5, we can read it from proxy too (2)
 for(let key in proxy) alert(key); // test, iteration works (3)
 ```
 
+Use case: translations like i18:
+
+```js
+let dictionary = {
+  'Hello': 'Hola',
+  'Bye': 'Adiós'
+};
+
+// overwrite dictionary reference / name so no one accidentally uses the original object
+dictionary = new Proxy(dictionary, {
+  get(target, phrase) { // intercept reading a property from dictionary
+    if (phrase in target) { // if we have it in the dictionary
+      return target[phrase]; // return the translation
+    } else {
+      // otherwise, return the non-translated phrase
+      return phrase;
+    }
+  }
+});
+
+// Look up arbitrary phrases in the dictionary!
+// At worst, they're not translated.
+alert( dictionary['Hello'] ); // Hola
+alert( dictionary['Welcome to Proxy']); // Welcome to Proxy (no translation)
+```
+
+Use case: array that allows only a specific type
+
+```js
+let numbers = [];
+
+numbers = new Proxy(numbers, { // (*)
+  set(target, prop, val) { // to intercept property writing
+    if (typeof val == 'number') {
+      target[prop] = val;
+      return true;
+    } else {
+      return false;
+    }
+  }
+});
+
+numbers.push(1); // added successfully
+numbers.push(2); // added successfully
+alert("Length is: " + numbers.length); // 2
+
+numbers.push("test"); // TypeError ('set' on proxy returned false)
+
+alert("This line is never reached (error in the line above)");
+```
+
+Use case: protect propterties (can be done with prefixing `#` in modern javascript, too)
+
+```js
+let user = {
+  name: "John",
+  _password: "***"
+};
+
+user = new Proxy(user, {
+  get(target, prop) {
+    if (prop.startsWith('_')) {
+      throw new Error("Access denied");
+    }
+    let value = target[prop];
+    return (typeof value === 'function') ? value.bind(target) : value; // (*)
+  },
+  set(target, prop, val) { // to intercept property writing
+    if (prop.startsWith('_')) {
+      throw new Error("Access denied");
+    } else {
+      target[prop] = val;
+      return true;
+    }
+  },
+  deleteProperty(target, prop) { // to intercept property deletion
+    if (prop.startsWith('_')) {
+      throw new Error("Access denied");
+    } else {
+      delete target[prop];
+      return true;
+    }
+  },
+  ownKeys(target) { // to intercept property list
+    return Object.keys(target).filter(key => !key.startsWith('_'));
+  }
+});
+
+// "get" doesn't allow to read _password
+try {
+  alert(user._password); // Error: Access denied
+} catch(e) { alert(e.message); }
+
+// "set" doesn't allow to write _password
+try {
+  user._password = "test"; // Error: Access denied
+} catch(e) { alert(e.message); }
+
+// "deleteProperty" doesn't allow to delete _password
+try {
+  delete user._password; // Error: Access denied
+} catch(e) { alert(e.message); }
+
+// "ownKeys" filters out _password
+for(let key in user) alert(key); // name
+```
+
+## Currying
+
+Self explanatory
+
+```js
+function curry(func) {
+
+  return function curried(...args) {
+    if (args.length >= func.length) {
+      return func.apply(this, args);
+    } else {
+      return function(...args2) {
+        return curried.apply(this, args.concat(args2));
+      }
+    }
+  };
+}
+
+function sum(a, b, c) {
+  return a + b + c;
+}
+
+let curriedSum = curry(sum);
+
+alert( curriedSum(1, 2, 3) ); // 6, still callable normally
+alert( curriedSum(1)(2,3) ); // 6, currying of 1st arg
+alert( curriedSum(1)(2)(3) ); // 6, full currying
+```
 ## Other stuff
 
 - `globalThis` references `window` in the browser and `global` in node and is now supported pretty much everywhere
+- Dynamically evaluated methods can lose their `this`!
+
+```js
+let user = {
+  name: "John",
+  hi() { alert(this.name); },
+  bye() { alert("Bye"); }
+};
+
+user.hi(); // works
+
+// now let's call user.hi or user.bye depending on the name
+(user.name == "John" ? user.hi : user.bye)(); // Error!
+```
+- `bigint` has osme [gotchas](https://javascript.info/bigint)
